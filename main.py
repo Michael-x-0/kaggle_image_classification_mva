@@ -6,9 +6,13 @@ import torch.optim as optim
 from torchvision import datasets
 from torch.autograd import Variable
 from tqdm import tqdm
+from torchvision.models import resnet50, ResNet50_Weights
 
 # Training settings
 parser = argparse.ArgumentParser(description='RecVis A3 training script')
+parser.add_argument('--tensorboard_log_dir', type = str, help = 'path for tensorboard output', required=True)
+parser.add_argument('--only_fc_layer', action= 'store_true')
+
 parser.add_argument('--data', type=str, default='bird_dataset', metavar='D',
                     help="folder where data is located. train_images/ and val_images/ need to be found in the folder")
 parser.add_argument('--batch-size', type=int, default=64, metavar='B',
@@ -45,10 +49,16 @@ val_loader = torch.utils.data.DataLoader(
                          transform=data_transforms),
     batch_size=args.batch_size, shuffle=False, num_workers=1)
 
+classes = set(train_loader.dataset.targets)
+n_classes = len(classes)
 # Neural network and optimizer
 # We define neural net in model.py so that it can be reused by the evaluate.py script
 from model import Net
-model = Net()
+
+
+resnet = resnet50(weights = ResNet50_Weights.IMAGENET1K_V2)
+model = Net(resnet,n_classes, args.only_fc_layer)
+
 if use_cuda:
     print('Using GPU')
     model.cuda()
@@ -57,7 +67,12 @@ else:
 
 optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
 
-def train(epoch):
+from torch.utils.tensorboard import SummaryWriter
+exp = 'LR_{}_mom_{}_only_{}_batch_size_{}'.format(args.lr,args.momentum,args.only_fc_layer,args.batch_size)
+tf_dir = args.tensorboard_log_dir+exp
+writer = SummaryWriter(log_dir = args.tensorboard_log_dir)
+step = 0
+def train(epoch,step):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
         if use_cuda:
@@ -72,8 +87,12 @@ def train(epoch):
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), loss.data.item()))
+        if step % args.log_interval == 0:
+          writer.add_scalar('train_loss',loss.data.item(),step)
+        step +=1
+    return step
 
-def validation():
+def validation(epoch):
     model.eval()
     validation_loss = 0
     correct = 0
@@ -90,13 +109,16 @@ def validation():
 
     validation_loss /= len(val_loader.dataset)
     print('\nValidation set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
-        validation_loss, correct, len(val_loader.dataset),
-        100. * correct / len(val_loader.dataset)))
+    validation_loss, correct, len(val_loader.dataset),
+    100. * correct / len(val_loader.dataset)))
+    writer.add_scalar('validation_loss',validation_loss, epoch)
+    writer.add_scalar('validation accuracy',correct/ len(val_loader.dataset),epoch)
 
 
 for epoch in range(1, args.epochs + 1):
-    train(epoch)
-    validation()
-    model_file = args.experiment + '/model_' + str(epoch) + '.pth'
+    step = train(epoch, step)
+    validation(epoch)
+    model_file = args.experiment + '/model_'+exp + str(epoch) + '.pth'
     torch.save(model.state_dict(), model_file)
     print('Saved model to ' + model_file + '. You can run `python evaluate.py --model ' + model_file + '` to generate the Kaggle formatted csv file\n')
+
