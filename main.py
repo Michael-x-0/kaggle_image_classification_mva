@@ -8,6 +8,7 @@ from torch.autograd import Variable
 from tqdm import tqdm
 from torchvision.models import resnet50, ResNet50_Weights
 
+
 # Training settings
 parser = argparse.ArgumentParser(description='RecVis A3 training script')
 parser.add_argument('--tensorboard_log_dir', type = str, help = 'path for tensorboard output', required=True)
