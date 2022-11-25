@@ -71,7 +71,7 @@ optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
 from torch.utils.tensorboard import SummaryWriter
 exp = 'LR_{}_mom_{}_only_{}_batch_size_{}'.format(args.lr,args.momentum,args.only_fc_layer,args.batch_size)
 tf_dir = args.tensorboard_log_dir+exp
-writer = SummaryWriter(log_dir = args.tensorboard_log_dir)
+writer = SummaryWriter(log_dir = tf_dir)
 step = 0
 def train(epoch,step):
     model.train()
