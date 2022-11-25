@@ -9,7 +9,7 @@ class Net(nn.Module):
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(3, 10, kernel_size=5)
         self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-        self.conv3 = nn.Conv2d(20, 20, kernel_size=5)
+        self.conv3 = nn.Conv2d(21, 20, kernel_size=5)
         self.fc1 = nn.Linear(320, 50)
         self.fc2 = nn.Linear(50, nclasses)
 
