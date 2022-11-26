@@ -8,8 +8,8 @@ from torchvision.models import ResNet50_Weights
 # and normalize them to mean = 0 and standard-deviation = 1 based on statistics collected from
 # the training set
 
-weights = ResNet50_Weights.IMAGENET1K_V2
-preprocess = weights.transforms()
+from model import preprocess
+
 # data_transforms = transforms.Compose([
 #     transforms.Resize((64, 64)),
 #     transforms.ToTensor(),

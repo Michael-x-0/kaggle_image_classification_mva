@@ -2,7 +2,6 @@ import argparse
 from tqdm import tqdm
 import os
 import PIL.Image as Image
-from torchvision.models import resnet50, ResNet50_Weights
 import torch
 
 from model import Net
@@ -19,8 +18,7 @@ args = parser.parse_args()
 use_cuda = torch.cuda.is_available()
 
 state_dict = torch.load(args.model)
-resnet = resnet50(weights = ResNet50_Weights.IMAGENET1K_V2)
-model = Net(resnet,20,False)
+model = Net(20,False)
 model.load_state_dict(state_dict)
 model.eval()
 if use_cuda:

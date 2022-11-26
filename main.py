@@ -72,8 +72,7 @@ val_loader = torch.utils.data.DataLoader(
 from model import Net
 
 
-resnet = resnet50(weights = ResNet50_Weights.IMAGENET1K_V2)
-model = Net(resnet,n_classes, args.only_fc_layer)
+model = Net(n_classes, args.only_fc_layer)
 
 if use_cuda:
     print('Using GPU')
