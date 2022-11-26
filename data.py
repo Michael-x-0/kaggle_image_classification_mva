@@ -17,5 +17,14 @@ preprocess = weights.transforms()
 #                                  std=[0.229, 0.224, 0.225])
 # ])
 
+data_augmentation = transforms.Compose(
+  [transforms.Resize((64,64)),
+  transforms.RandomResizedCrop(64),
+  transforms.RandomHorizontalFlip(0.2),
+  transforms.RandomVerticalFlip(0.2),
+  transforms.RandomRotation((0,90)),
+  transforms.GaussianBlur(3,(0.1,2)),
+  preprocess]
+)
 data_transforms = preprocess
 

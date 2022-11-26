@@ -11,6 +11,7 @@ from torchvision.models import resnet50, ResNet50_Weights
 
 # Training settings
 parser = argparse.ArgumentParser(description='RecVis A3 training script')
+parser.add_argument('--augment_data', action = 'store_true' ,help = 'if you want to apply data augmentation')
 parser.add_argument('--tensorboard_log_dir', type = str, help = 'path for tensorboard output', required=True)
 parser.add_argument('--only_fc_layer', action= 'store_true')
 
@@ -40,18 +41,32 @@ if not os.path.isdir(args.experiment):
 
 # Data initialization and loading
 from data import data_transforms
+from data import data_augmentation
 
-train_loader = torch.utils.data.DataLoader(
-    datasets.ImageFolder(args.data + '/train_images',
-                         transform=data_transforms),
+if args.augment_data:
+  dataset1 = datasets.ImageFolder(args.data + '/train_images',
+                         transform=data_transforms)
+  dataset2 = datasets.ImageFolder(args.data + '/train_images',
+                         transform=data_augmentation)
+  f_dataset = torch.utils.data.ConcatDataset([dataset1,dataset2])
+  classes = set(dataset1.targets)
+  n_classes = len(classes)
+
+else:
+  f_dataset =  datasets.ImageFolder(args.data + '/train_images',
+                        transform=data_transforms)
+  classes = set(f_dataset.targets)
+  n_classes = len(classes)                  
+
+train_loader = torch.utils.data.DataLoader( f_dataset
+    ,
     batch_size=args.batch_size, shuffle=True, num_workers=1)
 val_loader = torch.utils.data.DataLoader(
     datasets.ImageFolder(args.data + '/val_images',
                          transform=data_transforms),
     batch_size=args.batch_size, shuffle=False, num_workers=1)
 
-classes = set(train_loader.dataset.targets)
-n_classes = len(classes)
+
 # Neural network and optimizer
 # We define neural net in model.py so that it can be reused by the evaluate.py script
 from model import Net
@@ -69,7 +84,7 @@ else:
 optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
 
 from torch.utils.tensorboard import SummaryWriter
-exp = 'LR_{}_mom_{}_only_{}_batch_size_{}'.format(args.lr,args.momentum,args.only_fc_layer,args.batch_size)
+exp = 'LR_{}_mom_{}_only_{}_batch_size_{}_augmented_{}'.format(args.lr,args.momentum,args.only_fc_layer,args.batch_size,args.augment_data)
 tf_dir = args.tensorboard_log_dir+exp
 writer = SummaryWriter(log_dir = tf_dir)
 step = 0
@@ -119,7 +134,7 @@ def validation(epoch):
 for epoch in range(1, args.epochs + 1):
     step = train(epoch, step)
     validation(epoch)
-    model_file = args.experiment + '/model_'+exp + str(epoch) + '.pth'
+    model_file = args.experiment + '/model_'+exp+'_epoch_' + str(epoch) + '.pth'
     torch.save(model.state_dict(), model_file)
     print('Saved model to ' + model_file + '. You can run `python evaluate.py --model ' + model_file + '` to generate the Kaggle formatted csv file\n')
 
