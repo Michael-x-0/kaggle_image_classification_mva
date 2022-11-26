@@ -88,7 +88,7 @@ elif args.optim == 'adam':
   optimizer = optim.Adam(model.parameters(),lr = args.lr, weight_decay= args.weight_decay)
 
 from torch.utils.tensorboard import SummaryWriter
-exp = 'LR_{}_mom_{}_only_{}_batch_size_{}_augmented_{}_optim_{}_weight_{}'.format(args.lr,args.momentum,args.only_fc_layer, \
+exp = 'res152_LR_{}_mom_{}_only_{}_batch_size_{}_augmented_{}_optim_{}_weight_{}'.format(args.lr,args.momentum,args.only_fc_layer, \
 args.batch_size,args.augment_data, args.optim, args.weight_decay)
 tf_dir = args.tensorboard_log_dir+exp
 writer = SummaryWriter(log_dir = tf_dir)
