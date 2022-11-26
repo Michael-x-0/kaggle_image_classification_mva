@@ -11,6 +11,8 @@ from torchvision.models import resnet50, ResNet50_Weights
 
 # Training settings
 parser = argparse.ArgumentParser(description='RecVis A3 training script')
+parser.add_argument('--weight_decay', type = float , default = 0)
+parser.add_argument('--optim', type = str, help='select between sgd or adam', default = 'sgd' )
 parser.add_argument('--augment_data', action = 'store_true' ,help = 'if you want to apply data augmentation')
 parser.add_argument('--tensorboard_log_dir', type = str, help = 'path for tensorboard output', required=True)
 parser.add_argument('--only_fc_layer', action= 'store_true')
@@ -80,10 +82,14 @@ if use_cuda:
 else:
     print('Using CPU')
 
-optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+if args.optim == 'sgd':
+  optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
+elif args.optim == 'adam':
+  optimizer = optim.Adam(lr = args.lr, weight_decay= args.weight_decay)
 
 from torch.utils.tensorboard import SummaryWriter
-exp = 'LR_{}_mom_{}_only_{}_batch_size_{}_augmented_{}'.format(args.lr,args.momentum,args.only_fc_layer,args.batch_size,args.augment_data)
+exp = 'LR_{}_mom_{}_only_{}_batch_size_{}_augmented_{}_optim_{}_weight_{}'.format(args.lr,args.momentum,args.only_fc_layer, \
+args.batch_size,args.augment_data, args.optim, args.weight_decay)
 tf_dir = args.tensorboard_log_dir+exp
 writer = SummaryWriter(log_dir = tf_dir)
 step = 0

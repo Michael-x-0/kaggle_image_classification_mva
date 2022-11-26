@@ -18,13 +18,14 @@ from model import preprocess
 # ])
 
 data_augmentation = transforms.Compose(
-  [transforms.Resize((64,64)),
-  transforms.RandomResizedCrop(64),
-  transforms.RandomHorizontalFlip(0.2),
-  transforms.RandomVerticalFlip(0.2),
+  [transforms.Resize((232,232)),
+  transforms.RandomCrop(224),
+  transforms.RandomHorizontalFlip(0.5),
+  transforms.RandomVerticalFlip(0.5),
   transforms.RandomRotation((0,90)),
   transforms.GaussianBlur(3,(0.1,2)),
-  preprocess]
+  preprocess
+  ]
 )
 data_transforms = preprocess
 
