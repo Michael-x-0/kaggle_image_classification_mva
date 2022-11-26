@@ -85,7 +85,7 @@ else:
 if args.optim == 'sgd':
   optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
 elif args.optim == 'adam':
-  optimizer = optim.Adam(lr = args.lr, weight_decay= args.weight_decay)
+  optimizer = optim.Adam(model.parameters(),lr = args.lr, weight_decay= args.weight_decay)
 
 from torch.utils.tensorboard import SummaryWriter
 exp = 'LR_{}_mom_{}_only_{}_batch_size_{}_augmented_{}_optim_{}_weight_{}'.format(args.lr,args.momentum,args.only_fc_layer, \
