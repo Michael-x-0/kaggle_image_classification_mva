@@ -16,19 +16,23 @@ class Net(nn.Module):
     if only_fc_layer:
       for param in self.resnet.parameters():
         param.requires_grad = False
+    autoEncoder = AutoEncoder()
     if auto_path is not None:
+      print('Loading auto encodeur model')
       state_dict = torch.load(auto_path)
-      autoEncoder = AutoEncoder()
       autoEncoder.load_state_dict(state_dict)
-      self.autoEncoder = autoEncoder
-      self.Linear = nn.Linear(n_classes + 588,n_classes)
     self.resnet.fc = nn.Linear(2048,n_classes)
+    self.autoEncoder = autoEncoder
+    self.Linear1 = nn.Linear(588,5)
+    self.Linear2 = nn.Linear(n_classes + 5,n_classes)
 
   def forward(self,x):
     out = self.resnet(x)
-    if self.autoEncoder is not None:
+    if self.auto_path is not None:
       _,x = self.autoEncodeur(x)
-      out = F.Relu(self.Linear(torch.cat((out,x.view(-1)),axis = -1)))
+      x = F.relu(self.Linear1(x.view(-1,588)))
+      out = F.relu(out)
+      out = self.Linear2(torch.cat((out,x),axis = -1))
     return out 
 
 class AutoEncoder(nn.Module):
