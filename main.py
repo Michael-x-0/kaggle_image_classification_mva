@@ -94,6 +94,7 @@ args.batch_size,args.augment_data, args.optim, args.weight_decay)
 tf_dir = args.tensorboard_log_dir+exp
 writer = SummaryWriter(log_dir = tf_dir)
 step = 0
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma = 0.5)
 def train(epoch,step):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
@@ -104,7 +105,6 @@ def train(epoch,step):
         criterion = torch.nn.CrossEntropyLoss(reduction='mean')
         loss = criterion(output, target)
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
         optimizer.step()
         if batch_idx % args.log_interval == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
@@ -113,7 +113,9 @@ def train(epoch,step):
         if step % args.log_interval == 0:
           writer.add_scalar('train_loss',loss.data.item(),step)
         step +=1
+
     return step
+
 
 def validation(epoch):
     model.eval()
@@ -140,6 +142,7 @@ def validation(epoch):
 
 for epoch in range(1, args.epochs + 1):
     step = train(epoch, step)
+    scheduler.step()
     validation(epoch)
     model_file = args.experiment + '/model_'+exp+'_epoch_' + str(epoch) + '.pth'
     torch.save(model.state_dict(), model_file)
