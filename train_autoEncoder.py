@@ -50,9 +50,9 @@ train_loader = torch.utils.data.DataLoader(dataset
 # number of epochs to train the model
 n_epochs = args.epochs
 
-criterion = nn.BCELoss()
+criterion = nn.MSELoss()
 # specify loss function
-optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
+optimizer = torch.optim.Adam(model.parameters(), lr=args.lr )
 
 for epoch in range(1, n_epochs+1):
     # monitor training loss
@@ -62,18 +62,15 @@ for epoch in range(1, n_epochs+1):
     # train the model #
     ###################
     for batch_idx, (data, _) in enumerate(train_loader):
-        # _ stands in for labels, here
-        # no need to flatten images
-        # clear the gradients of all optimized variables
         if use_cuda:
             data = data.cuda()
         optimizer.zero_grad()
-        # forward pass: compute predicted outputs by passing inputs to the model
         outputs, x_enc = model(data)
         # calculate the loss
         loss = criterion(outputs, data)
         # backward pass: compute gradient of the loss with respect to model parameters
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 0.5)
         # perform a single optimization step (parameter update)
         optimizer.step()
         # update running training loss
@@ -86,7 +83,7 @@ for epoch in range(1, n_epochs+1):
         epoch, 
         train_loss
         ))
-model_file = args.experiment + '/model_autoencoder''_epoch_' + str(epoch) + '.pth'
+model_file = args.experiment + '/model_autoEncoder'+'_epoch_' + str(epoch) + '.pth'
 torch.save(model.state_dict(), model_file)
 print('model saved at {}'.format(model_file))
 
