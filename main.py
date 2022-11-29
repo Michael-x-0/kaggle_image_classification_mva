@@ -7,10 +7,11 @@ from torchvision import datasets
 from torch.autograd import Variable
 from tqdm import tqdm
 from torchvision.models import resnet50, ResNet50_Weights
-
+import numpy as np
 
 # Training settings
 parser = argparse.ArgumentParser(description='RecVis A3 training script')
+parser.add_argument('--final', action='store_true')
 parser.add_argument('--auto_path', type = str , default = None)
 parser.add_argument('--weight_decay', type = float , default = 0)
 parser.add_argument('--optim', type = str, help='select between sgd or adam', default = 'sgd' )
@@ -61,13 +62,21 @@ else:
   classes = set(f_dataset.targets)
   n_classes = len(classes)                  
 
-train_loader = torch.utils.data.DataLoader( f_dataset
-    ,
-    batch_size=args.batch_size, shuffle=True, num_workers=1)
-val_loader = torch.utils.data.DataLoader(
-    datasets.ImageFolder(args.data + '/val_images',
-                         transform=data_transforms),
-    batch_size=args.batch_size, shuffle=False, num_workers=1)
+if args.final:
+  print('final training')
+  val_dataset =  datasets.ImageFolder(args.data + '/val_images',
+                         transform=data_transforms)
+  train_loader = torch.utils.data.DataLoader( torch.utils.data.ConcatDataset([f_dataset,val_dataset])
+      ,
+      batch_size=args.batch_size, shuffle=True, num_workers=1)
+else:
+  train_loader = torch.utils.data.DataLoader( f_dataset
+      ,
+      batch_size=args.batch_size, shuffle=True, num_workers=1)
+  val_loader = torch.utils.data.DataLoader(
+      datasets.ImageFolder(args.data + '/val_images',
+                          transform=data_transforms),
+      batch_size=args.batch_size, shuffle=False, num_workers=1)
 
 
 # Neural network and optimizer
@@ -94,7 +103,7 @@ args.batch_size,args.augment_data, args.optim, args.weight_decay)
 tf_dir = args.tensorboard_log_dir+exp
 writer = SummaryWriter(log_dir = tf_dir)
 step = 0
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma = 0.5)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma = 0.5, verbose = True)
 def train(epoch,step):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
@@ -143,8 +152,14 @@ def validation(epoch):
 for epoch in range(1, args.epochs + 1):
     step = train(epoch, step)
     scheduler.step()
-    validation(epoch)
-    model_file = args.experiment + '/model_'+exp+'_epoch_' + str(epoch) + '.pth'
-    torch.save(model.state_dict(), model_file)
-    print('Saved model to ' + model_file + '. You can run `python evaluate.py --model ' + model_file + '` to generate the Kaggle formatted csv file\n')
+    if not args.final:
+      validation(epoch)
+      model_file = args.experiment + '/model_'+exp+'_epoch_' + str(epoch) + '.pth'
+      torch.save(model.state_dict(), model_file)
+      print('Saved model to ' + model_file + '. You can run `python evaluate.py --model ' + model_file + '` to generate the Kaggle formatted csv file\n')
+if args.final:
+  model_file = args.experiment + '/final_model_'+exp+'_epoch_' + str(epoch) + '.pth'
+  torch.save(model.state_dict(), model_file)
+  print('Saved model to ' + model_file + '. You can run `python evaluate.py --model ' + model_file + '` to generate the Kaggle formatted csv file\n')
+
 
