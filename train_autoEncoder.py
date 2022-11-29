@@ -39,41 +39,57 @@ else:
     print('Using CPU')
 
 
-optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-
-from data import transform_autoEncodeur
+from data import data_transforms
 dataset1 = datasets.ImageFolder(args.data + '/train_images',
-                         transform=transform_autoEncodeur)
+                         transform=data_transforms)
 dataset2 = datasets.ImageFolder(args.data + '/val_images',
-                         transform=transform_autoEncodeur)
+                         transform=data_transforms)
 dataset3 = datasets.ImageFolder(args.data + '/test_images',
-                         transform=transform_autoEncodeur)
+                         transform=data_transforms)
 f_dataset = torch.utils.data.ConcatDataset([dataset1,dataset2, dataset3])
 train_loader = torch.utils.data.DataLoader( f_dataset
     ,
     batch_size=args.batch_size, shuffle=True, num_workers=1)
-for epoch in range(args.epochs):
-    for i, (x, _) in enumerate(train_loader):
-        # Forward pass
-        x = x.cuda().view(-1, 12288)
-        x_reconst, mu, log_var = model(x)
-        
-        # Compute reconstruction loss and kl divergence
-        # For KL divergence between Gaussians, see Appendix B in VAE paper or (Doersch, 2016):
-        # https://arxiv.org/abs/1606.05908
-        reconst_loss = F.binary_cross_entropy(x_reconst, x, reduction='sum')
-        kl_div = - 0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
-        
-        # Backprop and optimize
-        loss = reconst_loss + kl_div
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        
-        if (i+1) % 10 == 0:
-            print ("Epoch[{}/{}], Step [{}/{}], Reconst Loss: {:.4f}, KL Div: {:.4f}" 
-                   .format(epoch+1, args.epochs, i+1, len(train_loader)*args.epochs, reconst_loss.item()/args.batch_size, kl_div.item()/args.batch_size))
 
+# number of epochs to train the model
+n_epochs = args.epochs
+
+criterion = nn.MSELoss()
+# specify loss function
+optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+
+for epoch in range(1, n_epochs+1):
+    # monitor training loss
+    train_loss = 0.0
+    
+    ###################
+    # train the model #
+    ###################
+    for batch_idx, (data, _) in enumerate(train_loader):
+        # _ stands in for labels, here
+        # no need to flatten images
+        # clear the gradients of all optimized variables
+        if use_cuda:
+            data = data.cuda()
+        optimizer.zero_grad()
+        # forward pass: compute predicted outputs by passing inputs to the model
+        outputs, x_enc = model(data)
+        # calculate the loss
+        loss = criterion(outputs, data)
+        # backward pass: compute gradient of the loss with respect to model parameters
+        loss.backward()
+        # perform a single optimization step (parameter update)
+        optimizer.step()
+        # update running training loss
+        train_loss += loss.item()*data.size(0)
+        
+            
+    # print avg training statistics 
+    train_loss = train_loss/len(train_loader)
+    print('Epoch: {} \tTraining Loss: {:.6f}'.format(
+        epoch, 
+        train_loss
+        ))
 model_file = args.experiment + '/model_autoencoder''_epoch_' + str(epoch) + '.pth'
 torch.save(model.state_dict(), model_file)
 print('model saved at {}'.format(model_file))

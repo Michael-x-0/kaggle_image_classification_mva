@@ -7,12 +7,7 @@ import torchvision.transforms as transforms
 weights = res_weight.IMAGENET1K_V2
 preprocess = weights.transforms()
 
-transform_autoEncodeur = transforms.Compose([
-    transforms.Resize((64, 64)),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                 std=[0.229, 0.224, 0.225])
-])
+
 class Net(nn.Module):
   def __init__(self,n_classes, only_fc_layer, auto_path = None):
     super(Net, self).__init__()
@@ -26,42 +21,54 @@ class Net(nn.Module):
       autoEncoder = AutoEncoder()
       autoEncoder.load_state_dict(state_dict)
       self.autoEncoder = autoEncoder
-      self.Linear = nn.Linear(n_classes + 400,n_classes)
+      self.Linear = nn.Linear(n_classes + 588,n_classes)
     self.resnet.fc = nn.Linear(2048,n_classes)
 
   def forward(self,x):
     out = self.resnet(x)
     if self.autoEncoder is not None:
-      x = transform_autoEncodeur(x)
-      x,_,_ = self.autoEncodeur(x)
-      out = F.Relu(self.Linear(torch.cat((out,x),axis = -1)))
+      _,x = self.autoEncodeur(x)
+      out = F.Relu(self.Linear(torch.cat((out,x.view(-1)),axis = -1)))
     return out 
 
 class AutoEncoder(nn.Module):
-   def __init__(self, image_size=12288 , h_dim=1000, z_dim=200):
-        super(AutoEncoder, self).__init__()
-        self.fc1 = nn.Linear(image_size, h_dim)
-        self.fc2 = nn.Linear(h_dim, z_dim)
-        self.fc3 = nn.Linear(h_dim, z_dim)
-        self.fc4 = nn.Linear(z_dim, h_dim)
-        self.fc5 = nn.Linear(h_dim, image_size)
-        
-   def encode(self, x):
-      h = F.relu(self.fc1(x))
-      return self.fc2(h), self.fc3(h)
-  
-   def reparameterize(self, mu, log_var):
-      std = torch.exp(log_var/2)
-      eps = torch.randn_like(std)
-      return mu + eps * std
+  def __init__(self):
+      super(AutoEncoder, self).__init__()
+      ## encoder layers ##
+      # conv layer (depth from 3 --> 16), 3x3 kernels
+      self.conv1 = nn.Conv2d(3, 16, 3, padding=1)  
+      self.conv2 = nn.Conv2d(16, 10, 3, padding=1)
+      self.conv3 = nn.Conv2d(10, 5, 3, padding=1)
+      self.conv4 = nn.Conv2d(5, 3, 3, padding=1)
+      # pooling layer to reduce x-y dims by two; kernel and stride of 2
+      self.pool = nn.MaxPool2d(2, 2)
+      
+      ## decoder layers ##
+      ## a kernel of 2 and a stride of 2 will increase the spatial dims by 2
+      self.t_conv1 = nn.ConvTranspose2d(3, 5, 2, stride=2)
+      self.t_conv2 = nn.ConvTranspose2d(5, 10, 2, stride=2)
+      self.t_conv3 = nn.ConvTranspose2d(10, 16, 2, stride=2)
+      self.t_conv4 = nn.ConvTranspose2d(16, 3, 2, stride=2)
 
-   def decode(self, z):
-      h = F.relu(self.fc4(z))
-      return torch.sigmoid(self.fc5(h))
-  
-   def forward(self, x):
-      mu, log_var = self.encode(x)
-      z = self.reparameterize(mu, log_var)
-      x_reconst = self.decode(z)
-      return x_reconst, mu, log_var
+  def forward(self, x):
+      ## encode ##
+      # add hidden layers with relu activation function
+      # and maxpooling after
+      x = F.relu(self.conv1(x))
+      x = self.pool(x)
+      x = F.relu(self.conv2(x))
+      x = self.pool(x)
+      x = F.relu(self.conv3(x))
+      x = self.pool(x)
+      x = F.relu(self.conv4(x))
+      x_enc = self.pool(x)
+      
+      ## decode ##
+      # add transpose conv layers, with relu activation function
+      x = F.relu(self.t_conv1(x_enc))
+      x = F.relu(self.t_conv2(x))
+      x = F.relu(self.t_conv3(x))
+      x = self.t_conv4(x)
+              
+      return x,x_enc
 

@@ -10,12 +10,6 @@ from torchvision.models import ResNet50_Weights
 
 from model import preprocess
 
-transform_autoEncodeur = transforms.Compose([
-    transforms.Resize((64, 64)),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                 std=[0.229, 0.224, 0.225])
-])
 
 data_augmentation = transforms.Compose(
   [transforms.Resize((232,232)),
