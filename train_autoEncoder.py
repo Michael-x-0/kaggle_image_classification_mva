@@ -41,21 +41,21 @@ else:
 
 optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
-from data import data_transforms
+from data import transform_autoEncodeur
 dataset1 = datasets.ImageFolder(args.data + '/train_images',
-                         transform=data_transforms)
+                         transform=transform_autoEncodeur)
 dataset2 = datasets.ImageFolder(args.data + '/val_images',
-                         transform=data_transforms)
+                         transform=transform_autoEncodeur)
 dataset3 = datasets.ImageFolder(args.data + '/test_images',
-                         transform=data_transforms)
+                         transform=transform_autoEncodeur)
 f_dataset = torch.utils.data.ConcatDataset([dataset1,dataset2, dataset3])
 train_loader = torch.utils.data.DataLoader( f_dataset
     ,
     batch_size=args.batch_size, shuffle=True, num_workers=1)
 for epoch in range(args.epochs):
-    for i, (x, _) in enumerate(data_loader):
+    for i, (x, _) in enumerate(train_loader):
         # Forward pass
-        x = x.to(device).view(-1, image_size)
+        x = x.cuda().view(-1, 12288)
         x_reconst, mu, log_var = model(x)
         
         # Compute reconstruction loss and kl divergence
@@ -72,12 +72,11 @@ for epoch in range(args.epochs):
         
         if (i+1) % 10 == 0:
             print ("Epoch[{}/{}], Step [{}/{}], Reconst Loss: {:.4f}, KL Div: {:.4f}" 
-                   .format(epoch+1, num_epochs, i+1, len(data_loader), reconst_loss.item()/batch_size, kl_div.item()/batch_size))
+                   .format(epoch+1, args.epochs, i+1, len(train_loader)*args.epochs, reconst_loss.item()/args.batch_size, kl_div.item()/args.batch_size))
 
 model_file = args.experiment + '/model_autoencoder''_epoch_' + str(epoch) + '.pth'
 torch.save(model.state_dict(), model_file)
-
-
+print('model saved at {}'.format(model_file))
 
 
 

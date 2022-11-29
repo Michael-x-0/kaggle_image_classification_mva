@@ -2,24 +2,38 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models import resnet152 as res, ResNet152_Weights as res_weight
+from data import transform_autoEncodeur
 
 weights = res_weight.IMAGENET1K_V2
 preprocess = weights.transforms()
 
+
 class Net(nn.Module):
-  def __init__(self,n_classes, only_fc_layer):
+  def __init__(self,n_classes, only_fc_layer, auto_path = None):
     super(Net, self).__init__()
     self.resnet = res(weights = res_weight.IMAGENET1K_V2)
+    self.auto_path = auto_path
     if only_fc_layer:
       for param in self.resnet.parameters():
         param.requires_grad = False
+    if auto_path is not None:
+      state_dict = torch.load(auto_path)
+      autoEncoder = AutoEncoder()
+      autoEncoder.load_state_dict(state_dict)
+      self.autoEncoder = autoEncoder
+      self.Linear = nn.Linear(n_classes + 400,n_classes)
     self.resnet.fc = nn.Linear(2048,n_classes)
 
   def forward(self,x):
-    return self.resnet(x)
+    out = self.resnet(x)
+    if self.autoEncoder is not None:
+      x = transform_autoEncodeur(x)
+      x,_,_ = self.autoEncodeur(x)
+      out = F.Relu(self.Linear(torch.cat((out,x),axis = -1)))
+    return out 
 
 class AutoEncoder(nn.Module):
-   def __init__(self, image_size=784, h_dim=400, z_dim=20):
+   def __init__(self, image_size=12288 , h_dim=1000, z_dim=200):
         super(AutoEncoder, self).__init__()
         self.fc1 = nn.Linear(image_size, h_dim)
         self.fc2 = nn.Linear(h_dim, z_dim)
