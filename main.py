@@ -11,6 +11,7 @@ from torchvision.models import resnet50, ResNet50_Weights
 
 # Training settings
 parser = argparse.ArgumentParser(description='RecVis A3 training script')
+parser.add_argument('--auto_path', type = str , default = None)
 parser.add_argument('--weight_decay', type = float , default = 0)
 parser.add_argument('--optim', type = str, help='select between sgd or adam', default = 'sgd' )
 parser.add_argument('--augment_data', action = 'store_true' ,help = 'if you want to apply data augmentation')
@@ -74,7 +75,7 @@ val_loader = torch.utils.data.DataLoader(
 from model import Net
 
 
-model = Net(n_classes, args.only_fc_layer)
+model = Net(n_classes, args.only_fc_layer, args.auto_path)
 
 if use_cuda:
     print('Using GPU')

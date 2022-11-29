@@ -2,12 +2,17 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models import resnet152 as res, ResNet152_Weights as res_weight
-from data import transform_autoEncodeur
+import torchvision.transforms as transforms
 
 weights = res_weight.IMAGENET1K_V2
 preprocess = weights.transforms()
 
-
+transform_autoEncodeur = transforms.Compose([
+    transforms.Resize((64, 64)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225])
+])
 class Net(nn.Module):
   def __init__(self,n_classes, only_fc_layer, auto_path = None):
     super(Net, self).__init__()
