@@ -29,7 +29,7 @@ class Net(nn.Module):
   def forward(self,x):
     out = self.resnet(x)
     if self.auto_path is not None:
-      _,x = self.autoEncodeur(x)
+      _,x = self.autoEncoder(x)
       x = F.relu(self.Linear1(x.view(-1,588)))
       out = F.relu(out)
       out = self.Linear2(torch.cat((out,x),axis = -1))
@@ -72,7 +72,7 @@ class AutoEncoder(nn.Module):
       x = F.relu(self.t_conv1(x_enc))
       x = F.relu(self.t_conv2(x))
       x = F.relu(self.t_conv3(x))
-      x = self.t_conv4(x)
+      x = torch.sigmoid(self.t_conv4(x))
               
       return x,x_enc
 

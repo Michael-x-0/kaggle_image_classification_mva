@@ -40,23 +40,19 @@ else:
 
 
 from data import data_transforms
-dataset1 = datasets.ImageFolder(args.data + '/train_images',
+
+dataset = datasets.ImageFolder(args.data,
                          transform=data_transforms)
-dataset2 = datasets.ImageFolder(args.data + '/val_images',
-                         transform=data_transforms)
-dataset3 = datasets.ImageFolder(args.data + '/test_images',
-                         transform=data_transforms)
-f_dataset = torch.utils.data.ConcatDataset([dataset1,dataset2, dataset3])
-train_loader = torch.utils.data.DataLoader( f_dataset
+train_loader = torch.utils.data.DataLoader(dataset
     ,
     batch_size=args.batch_size, shuffle=True, num_workers=1)
 
 # number of epochs to train the model
 n_epochs = args.epochs
 
-criterion = nn.MSELoss()
+criterion = nn.BCELoss()
 # specify loss function
-optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
 
 for epoch in range(1, n_epochs+1):
     # monitor training loss
